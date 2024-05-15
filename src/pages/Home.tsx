@@ -3,6 +3,7 @@ import { FilterContainer, Listing } from "../components";
 import { getProducts } from "../services/Product/product.service";
 import { useLocation, useNavigate } from "react-router-dom";
 import { IProduct } from "../interfaces/Products/product.interface";
+import { toast } from "react-toastify";
 
 const Home = () => {
   const { search } = useLocation();
@@ -73,9 +74,12 @@ const Home = () => {
   useEffect(() => {
     const getData = async () => {
       const params = new URLSearchParams(search);
+      const sortBy = params.get("sortBy") || undefined;
       const orderBy = sortBy?.split("-")?.[0];
       const order = sortBy?.split("-")?.[1];
       const page = params.get("page") || 1;
+      const selectedBrands = params.get("selectedBrands")?.split(",") || [];
+      const selectedModels = params.get("selectedModels")?.split(",") || [];
 
       try {
         let { data: filteredData } = await getProducts({
@@ -90,15 +94,13 @@ const Home = () => {
 
         const uniqueModels: string[] = getFilteredModels(
           filteredData,
-          facets.selectedBrands.length > 0
-            ? facets.selectedBrands
-            : uniqueBrands
+          selectedBrands.length > 0 ? selectedBrands : uniqueBrands
         );
 
         filteredData = getFilteredData(
           filteredData,
-          facets.selectedBrands,
-          facets.selectedModels
+          selectedBrands,
+          selectedModels
         );
 
         const pageCount = Math.ceil(filteredData.length / limit);
@@ -108,15 +110,18 @@ const Home = () => {
         );
 
         setFacets({
-          ...facets,
+          selectedBrands,
+          selectedModels,
           models: uniqueModels,
           brands: uniqueBrands,
         });
+        setSortBy(sortBy);
         setCurrentPage(page);
         setTotalPages(pageCount);
         setPaginatedProducts(paginatedData);
         setLoading(false);
       } catch (error) {
+        toast.error("An unexpected error occurred");
         return error;
       }
     };
